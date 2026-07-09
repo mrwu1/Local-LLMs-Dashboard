@@ -68,6 +68,26 @@ A local LLM (Large Language Model) control center and inference engine manager, 
 
 **Requirements**: Python 3.10+
 
+#### 📦 Engine Prerequisites
+
+Install the external tools for the engines you plan to use:
+
+| Engine | Platform | Install Command |
+|--------|----------|-----------------|
+| 🦙 Ollama | macOS / Linux | `brew install ollama` |
+| 🦙 Ollama | Windows (WSL) | [Download from ollama.com](https://ollama.com/download) |
+| 🚀 MLX | macOS (Apple Silicon) only | `pip install mlx-lm` |
+| ⚙️ llama.cpp | macOS / Linux | `brew install llama.cpp` |
+| ⚙️ llama.cpp | Windows | Build from [source](https://github.com/ggerganov/llama.cpp) |
+| ⚡ LiteRT | macOS (Apple Silicon) | `uv tool install litert-lm` |
+| 🖥️ screen | macOS / Linux | Pre-installed (macOS) / `apt install screen` (Linux) |
+| 🖥️ screen | Windows | Not needed — use WSL or replace with `start /B` |
+| 📦 uv (optional) | macOS / Linux / Windows | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+> **Tip**: For a minimal setup on macOS, you only need Ollama + Python 3.10+.
+
+#### ▶️ Run the Dashboard
+
 ```bash
 # 1. Clone the repository
 git clone https://github.com/mrwu1/Local-LLMs-Dashboard.git
@@ -149,6 +169,26 @@ MIT License. Models served may be subject to their own licenses (Google Gemma Li
 
 **环境要求**：Python 3.10+
 
+#### 📦 各引擎前置安装依赖
+
+根据您需要使用的引擎，请提前安装对应的外部工具：
+
+| 引擎 | 平台 | 安装指令 |
+|------|------|----------|
+| 🦙 Ollama | macOS / Linux | `brew install ollama` |
+| 🦙 Ollama | Windows (WSL) | [从 ollama.com 下载](https://ollama.com/download) |
+| 🚀 MLX | 仅限 macOS Apple Silicon | `pip install mlx-lm` |
+| ⚙️ llama.cpp | macOS / Linux | `brew install llama.cpp` |
+| ⚙️ llama.cpp | Windows | 从[源代码](https://github.com/ggerganov/llama.cpp)自行编译 |
+| ⚡ LiteRT | macOS Apple Silicon | `uv tool install litert-lm` |
+| 🖥️ screen | macOS / Linux | macOS 预装 / Linux: `apt install screen` |
+| 🖥️ screen | Windows | 无需安装 — 使用 WSL 或将代码中替换为 `start /B` |
+| 📦 uv（可选） | macOS / Linux / Windows | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+> **提示**：在 macOS 上最简启动只需安装 Ollama + Python 3.10+ 即可。
+
+#### ▶️ 启动面板
+
 ```bash
 # 1. 克隆项目
 git clone https://github.com/mrwu1/Local-LLMs-Dashboard.git
@@ -229,6 +269,26 @@ python3 src/main.py
 ### 🚀 クイックスタート
 
 **必要環境**：Python 3.10以上
+
+#### 📦 エンジン別・前提ツールのインストール
+
+使用するエンジンに応じて、以下の外部ツールを事前にインストールしてください：
+
+| エンジン | プラットフォーム | インストールコマンド |
+|----------|------------------|----------------------|
+| 🦙 Ollama | macOS / Linux | `brew install ollama` |
+| 🦙 Ollama | Windows (WSL) | [ollama.comからダウンロード](https://ollama.com/download) |
+| 🚀 MLX | macOS Apple Siliconのみ | `pip install mlx-lm` |
+| ⚙️ llama.cpp | macOS / Linux | `brew install llama.cpp` |
+| ⚙️ llama.cpp | Windows | [ソースコード](https://github.com/ggerganov/llama.cpp)からビルド |
+| ⚡ LiteRT | macOS Apple Silicon | `uv tool install litert-lm` |
+| 🖥️ screen | macOS / Linux | macOS標準搭載 / Linux: `apt install screen` |
+| 🖥️ screen | Windows | 不要 — WSLを使用するか `start /B` に置き換え |
+| 📦 uv（任意） | macOS / Linux / Windows | `curl -LsSf https://astral.sh/uv/install.sh \| sh` |
+
+> **ヒント**：macOSでの最小構成は Ollama + Python 3.10+ のみで動作します。
+
+#### ▶️ ダッシュボードの起動
 
 ```bash
 # 1. リポジトリのクローン
