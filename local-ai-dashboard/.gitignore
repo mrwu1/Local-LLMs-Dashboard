@@ -1,0 +1,23 @@
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+
+# Local logs
+*.log
+/tmp/download_*.log
+/tmp/mlx_*.log
+/tmp/ollama.log
+
+# IDE & OS files
+.DS_Store
+.vscode/
+.idea/
+
+# Local configs / environments
+.env
+venv/
+env/
+mlx_env/

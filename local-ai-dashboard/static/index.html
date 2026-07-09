@@ -1,0 +1,459 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Local AI Manager Console - M5 Mac</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <!-- Google Font -->
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="glow-bg"></div>
+    
+    <div class="app-container">
+        <!-- Header -->
+        <header class="glass-panel main-header">
+            <div class="brand">
+                <i data-lucide="cpu" class="icon-pulse brand-icon"></i>
+                <div class="brand-text">
+                    <h1>AI CORE</h1>
+                    <p>macOS Native Local LLM Manager</p>
+                </div>
+            </div>
+            <div class="safeguard-status" id="safeguard-badge">
+                <i data-lucide="shield-check" class="shield-green"></i>
+                <span>内存红线守卫: 🟢 安全</span>
+            </div>
+            <button class="cooldown-btn" id="cooldown-trigger" title="立即释放所有 AI 进程显存，释放物理内存">
+                <i data-lucide="flame"></i>
+                <span>一键退烧药</span>
+            </button>
+        </header>
+
+        <!-- Main Body Grid -->
+        <main class="main-grid">
+            <!-- Sidebar / System Panel -->
+            <section class="glass-panel system-section">
+                <h2>系统监控 (System Overview)</h2>
+                
+                <!-- Unified Memory Circular Gauge -->
+                <div class="gauge-container">
+                    <div class="vram-gauge">
+                        <svg class="gauge-ring" width="160" height="160">
+                            <circle class="ring-bg" cx="80" cy="80" r="70"></circle>
+                            <circle class="ring-progress" id="vram-ring" cx="80" cy="80" r="70"></circle>
+                        </svg>
+                        <div class="gauge-text">
+                            <span class="gauge-val" id="vram-val">0.0 GB</span>
+                            <span class="gauge-lbl">AI 显存估算</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Metrics Progress Bars -->
+                <div class="metrics-list">
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <span>系统总内存占用 (RAM)</span>
+                            <span id="ram-text">0.0GB / 16.0GB</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-bar" id="ram-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                    <div class="metric-item">
+                        <div class="metric-info">
+                            <span>CPU 使用率</span>
+                            <span id="cpu-text">0%</span>
+                        </div>
+                        <div class="progress-track">
+                            <div class="progress-bar" id="cpu-bar" style="width: 0%"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Active Models List -->
+                <div class="active-models-container">
+                    <h3>当前载入显存模型</h3>
+                    <ul class="active-models-list" id="active-models-list">
+                        <li class="empty-list">暂无活跃模型在显存</li>
+                    </ul>
+                </div>
+            </section>
+
+            <!-- Services Grid -->
+            <section class="services-column">
+                <div class="services-header">
+                    <h2>大模型与容器服务网格 (Service Grid)</h2>
+                </div>
+                
+                <div class="services-grid" id="services-container">
+                    <!-- Service Card: Ollama -->
+                    <div class="glass-panel service-card" id="card-ollama">
+                        <div class="card-header">
+                            <div class="service-meta">
+                                <div class="avatar-container">🦙</div>
+                                <div>
+                                    <h3>Ollama 引擎</h3>
+                                    <p class="port-tag">Port 11434</p>
+                                </div>
+                            </div>
+                            <span class="status-dot status-stopped" id="status-ollama">已关停</span>
+                        </div>
+                        <p class="service-desc">管理并运行本地轻量级 GGUF 大模型，同时为知识库提供 BGE-M3 向量支持。</p>
+                        
+                        <!-- Model download section -->
+                        <div class="download-section" style="margin-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📥 下载新模型</span>
+                                <span id="download-status-ollama" style="color: var(--primary); font-size: 0.75rem;"></span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <input type="text" id="download-input-ollama" placeholder="输入模型 ID (如 deepseek-r1:7b)..." class="glass-select" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; background: rgba(0,0,0,0.2);">
+                                <button class="action-btn" id="download-btn-ollama" onclick="startDownload('ollama')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap;">
+                                    下载
+                                </button>
+                                <button class="action-btn hide" id="download-log-btn-ollama" onclick="openLogs('download_ollama')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: #2ecc71; border: none;">
+                                    进度
+                                </button>
+                            </div>
+                            <div class="download-presets" id="presets-ollama" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem;">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                            <div style="margin-top: 0.4rem; font-size: 0.75rem; text-align: right;">
+                                <a href="javascript:void(0)" onclick="openHFDiscovery('ollama')" style="color: var(--primary); text-decoration: none; font-weight: 500;">🔍 发现 Hugging Face 最新 GGUF 模型</a>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <button class="action-btn start-btn" onclick="toggleService('ollama')">
+                                <i data-lucide="play"></i> 启动
+                            </button>
+                            <button class="action-btn stop-btn hide" onclick="stopService('ollama')">
+                                <i data-lucide="square"></i> 关闭
+                            </button>
+                            <button class="icon-btn" onclick="openOllamaModels()" title="查看已下载模型与用途">
+                                <i data-lucide="list"></i>
+                            </button>
+                            <button class="icon-btn" onclick="openLogs('ollama')" title="查看实时日志">
+                                <i data-lucide="terminal"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Service Card: MLX -->
+                    <div class="glass-panel service-card" id="card-mlx">
+                        <div class="card-header">
+                            <div class="service-meta">
+                                <div class="avatar-container">🚀</div>
+                                <div>
+                                    <h3>MLX 引擎</h3>
+                                    <p class="port-tag">Port 8080</p>
+                                </div>
+                            </div>
+                            <span class="status-dot status-stopped" id="status-mlx">已关停</span>
+                        </div>
+                        <p class="service-desc">苹果官方针对 Metal 加速优化的专属服务，支持 Qwen Coder 等高性能编程大模型。</p>
+                        
+                        <div class="model-select-wrapper">
+                            <label for="mlx-model-select">选择启动模型：</label>
+                            <select id="mlx-model-select" class="glass-select">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Model download section -->
+                        <div class="download-section" style="margin-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📥 下载新模型</span>
+                                <span id="download-status-mlx" style="color: var(--primary); font-size: 0.75rem;"></span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <input type="text" id="download-input-mlx" placeholder="输入模型 ID (如 mlx-community/phi-4)..." class="glass-select" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; background: rgba(0,0,0,0.2);">
+                                <button class="action-btn" id="download-btn-mlx" onclick="startDownload('mlx')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap;">
+                                    下载
+                                </button>
+                                <button class="action-btn hide" id="download-log-btn-mlx" onclick="openLogs('download_mlx')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: #2ecc71; border: none;">
+                                    进度
+                                </button>
+                            </div>
+                            <div class="download-presets" id="presets-mlx" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem;">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                            <div style="margin-top: 0.4rem; font-size: 0.75rem; text-align: right;">
+                                <a href="javascript:void(0)" onclick="openHFDiscovery('mlx')" style="color: var(--primary); text-decoration: none; font-weight: 500;">🔍 探索 MLX 最新发布模型</a>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <button class="action-btn start-btn" onclick="toggleService('mlx')">
+                                <i data-lucide="play"></i> 启动
+                            </button>
+                            <button class="action-btn stop-btn hide" onclick="stopService('mlx')">
+                                <i data-lucide="square"></i> 关闭
+                            </button>
+                            <button class="icon-btn" onclick="openLogs('mlx')" title="查看实时日志">
+                                <i data-lucide="terminal"></i>
+                            </button>
+                        </div>
+                    </div>
+ 
+                    <!-- Service Card: llama.cpp -->
+                    <div class="glass-panel service-card" id="card-llama_cpp">
+                        <div class="card-header">
+                            <div class="service-meta">
+                                <div class="avatar-container">⚙️</div>
+                                <div>
+                                    <h3>llama.cpp 引擎</h3>
+                                    <p class="port-tag">Port 8090</p>
+                                </div>
+                            </div>
+                            <span class="status-dot status-stopped" id="status-llama_cpp">已关停</span>
+                        </div>
+                        <p class="service-desc">原生极简 C/C++ 推理引擎，无 Python/Docker 依赖，基于 Metal GPU 加速直跑 GGUF 格式模型。</p>
+                        
+                        <div class="model-select-wrapper">
+                            <label for="llama_cpp-model-select">选择启动模型：</label>
+                            <select id="llama_cpp-model-select" class="glass-select">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <div style="margin-top: 0.6rem; margin-bottom: 0.6rem; font-size: 0.75rem; color: var(--text-secondary); background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.08); padding: 0.4rem 0.6rem; border-radius: 6px; line-height: 1.35;">
+                            💡 提示：llama.cpp 引擎直接共享 Ollama 权重，请通过 Ollama 卡片下载新模型，即可在此处自动同步。
+                        </div>
+
+                        <div class="card-footer">
+                            <button class="action-btn start-btn" onclick="toggleService('llama_cpp')">
+                                <i data-lucide="play"></i> 启动
+                            </button>
+                            <button class="action-btn stop-btn hide" onclick="stopService('llama_cpp')">
+                                <i data-lucide="square"></i> 关闭
+                            </button>
+                            <button class="icon-btn" onclick="openLlamaTestModal()" title="接口调试与用例测试">
+                                <i data-lucide="bug"></i>
+                            </button>
+                            <button class="icon-btn" onclick="openLogs('llama_cpp')" title="查看实时日志">
+                                <i data-lucide="terminal"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Service Card: LiteRT -->
+                    <div class="glass-panel service-card" id="card-litert">
+                        <div class="card-header">
+                            <div class="service-meta">
+                                <div class="avatar-container">⚡</div>
+                                <div>
+                                    <h3>LiteRT 服务</h3>
+                                    <p class="port-tag">Port 4010</p>
+                                </div>
+                            </div>
+                            <span class="status-dot status-stopped" id="status-litert">已关停</span>
+                        </div>
+                        <p class="service-desc">极简端侧轻量多模态运行时，部署运行 gemma4-e4b 以满足离线图片理解需求。</p>
+                        
+                        <div class="model-select-wrapper">
+                            <label for="litert-model-select">已导入本地模型：</label>
+                            <select id="litert-model-select" class="glass-select">
+                                <!-- Populated dynamically -->
+                            </select>
+                        </div>
+
+                        <!-- Model download section -->
+                        <div class="download-section" style="margin-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 0.8rem;">
+                            <div style="font-size: 0.8rem; color: var(--text-secondary); margin-bottom: 0.4rem; display: flex; justify-content: space-between; align-items: center;">
+                                <span>📥 下载/导入新模型</span>
+                                <span id="download-status-litert" style="color: var(--primary); font-size: 0.75rem;"></span>
+                            </div>
+                            <div style="display: flex; gap: 0.4rem;">
+                                <input type="text" id="download-input-litert" placeholder="输入 HF ID (如 google/gemma-2b-it-tflite/gemma-2b-it-gpu-int4.bin)..." class="glass-select" style="flex: 1; padding: 0.35rem 0.5rem; font-size: 0.8rem; margin: 0; background: rgba(0,0,0,0.2);">
+                                <button class="action-btn" id="download-btn-litert" onclick="startDownload('litert')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap;">
+                                    下载
+                                </button>
+                                <button class="action-btn hide" id="download-log-btn-litert" onclick="openLogs('download_litert')" style="padding: 0.35rem 0.6rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: #2ecc71; border: none;">
+                                    进度
+                                </button>
+                            </div>
+                            <div class="download-presets" id="presets-litert" style="display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem;">
+                                <!-- Populated dynamically by JS -->
+                            </div>
+                            <div style="margin-top: 0.4rem; font-size: 0.75rem; text-align: right;">
+                                <a href="javascript:void(0)" onclick="openHFDiscovery('litert')" style="color: var(--primary); text-decoration: none; font-weight: 500;">🔍 探索 Hugging Face 最新 TFLite 模型</a>
+                            </div>
+                        </div>
+
+                        <div class="card-footer">
+                            <button class="action-btn start-btn" onclick="toggleService('litert')">
+                                <i data-lucide="play"></i> 启动
+                            </button>
+                            <button class="action-btn stop-btn hide" onclick="stopService('litert')">
+                                <i data-lucide="square"></i> 关闭
+                            </button>
+                            <button class="icon-btn" onclick="openLogs('litert')" title="查看实时日志">
+                                <i data-lucide="terminal"></i>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- Service Card: Open WebUI -->
+                    <div class="glass-panel service-card" id="card-webui">
+                        <div class="card-header">
+                            <div class="service-meta">
+                                <div class="avatar-container">🐳</div>
+                                <div>
+                                    <h3>Open WebUI 容器</h3>
+                                    <p class="port-tag">Port 3000</p>
+                                </div>
+                            </div>
+                            <span class="status-dot status-stopped" id="status-webui">已关停</span>
+                        </div>
+                        <p class="service-desc">本地沙盒 Linux 隔离部署的前端交互界面，挂载物理路径保存聊天记录与本地知识库。</p>
+                        <div class="card-footer">
+                            <button class="action-btn start-btn" onclick="toggleService('webui')">
+                                <i data-lucide="play"></i> 启动
+                            </button>
+                            <button class="action-btn stop-btn hide" onclick="stopService('webui')">
+                                <i data-lucide="square"></i> 关闭
+                            </button>
+                            <a href="http://localhost:3000" target="_blank" class="icon-btn web-link-btn hide" id="link-webui" title="打开聊天网页 ↗">
+                                <i data-lucide="external-link"></i>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <!-- Diagnose Bar -->
+        <footer class="glass-panel diagnose-bar" id="diagnose-box">
+            <div class="diag-status">
+                <i data-lucide="activity" class="status-pulse"></i>
+                <span id="diag-message">正在检测本地虚拟网卡与代理环境...</span>
+            </div>
+            <div class="diag-meta" id="diag-badge-net">
+                网卡 bridge100: <span class="badge-gray" id="bridge-badge">检测中</span>
+            </div>
+        </footer>
+    </div>
+
+    <!-- Logs Modal -->
+    <div class="modal-overlay" id="logs-modal">
+        <div class="glass-panel modal-content">
+            <div class="modal-header">
+                <div class="modal-title-meta">
+                    <i data-lucide="terminal"></i>
+                    <h3 id="modal-service-title">服务日志</h3>
+                </div>
+                <button class="modal-close" onclick="closeLogs()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <pre class="log-view" id="log-content">正在载入日志...</pre>
+            </div>
+            <div class="modal-footer">
+                <span class="log-path-info" id="log-path-lbl">日志路径: --</span>
+                <button class="action-btn" onclick="refreshLogs()">
+                    <i data-lucide="rotate-cw"></i> 刷新
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Ollama Models Modal -->
+    <div class="modal-overlay" id="ollama-models-modal">
+        <div class="glass-panel modal-content" style="max-width: 600px;">
+            <div class="modal-header">
+                <div class="modal-title-meta">
+                    <i data-lucide="list"></i>
+                    <h3>Ollama 已下载模型列表及用途</h3>
+                </div>
+                <button class="modal-close" onclick="closeOllamaModels()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="background: #090a0f; padding: 1.5rem; max-height: 500px; overflow-y: auto;">
+                <div class="ollama-models-container" id="ollama-models-list">
+                    正在读取本地已下载模型...
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- llama.cpp Test Modal -->
+    <div class="modal-overlay" id="llama-test-modal">
+        <div class="glass-panel modal-content" style="max-width: 650px;">
+            <div class="modal-header">
+                <div class="modal-title-meta">
+                    <i data-lucide="bug"></i>
+                    <h3>llama.cpp 接口调试工具</h3>
+                </div>
+                <button class="modal-close" onclick="closeLlamaTestModal()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="background: #090a0f; padding: 1.5rem;">
+                <div style="margin-bottom: 1rem;">
+                    <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">📊 预置测试用例（一键快速填充）：</label>
+                    <div style="display: flex; flex-wrap: wrap; gap: 0.5rem;" id="test-cases-row">
+                        <!-- Filled dynamically -->
+                    </div>
+                </div>
+                <div style="margin-bottom: 1rem;">
+                    <label for="test-prompt-input" style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">输入测试提示词 (Prompt)：</label>
+                    <textarea id="test-prompt-input" class="glass-select" style="width: 100%; height: 100px; padding: 0.75rem; border-radius: 8px; font-size: 0.9rem; resize: vertical; line-height: 1.4; background: rgba(255,255,255,0.03); border:1px solid rgba(255,255,255,0.08); color:var(--text-primary);" placeholder="输入您的问题..."></textarea>
+                </div>
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <span id="test-status-lbl" style="font-size: 0.85rem; color: var(--text-muted);">等待发送...</span>
+                    <button class="action-btn start-btn" onclick="sendLlamaTest()">
+                        <i data-lucide="send"></i> 发送测试
+                    </button>
+                </div>
+                <div>
+                    <label style="display: block; font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 0.5rem;">💻 响应输出控制台 (Response console)：</label>
+                    <div id="test-output-console" style="background: rgba(0, 0, 0, 0.4); border: 1px solid rgba(255, 255, 255, 0.05); padding: 1rem; border-radius: 8px; font-family: monospace; font-size: 0.88rem; color: #a7f3d0; min-height: 120px; max-height: 250px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; line-height: 1.5;"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Hugging Face Model Discovery Modal -->
+    <div class="modal-overlay" id="hf-discovery-modal">
+        <div class="glass-panel modal-content" style="max-width: 800px; width: 95%;">
+            <div class="modal-header">
+                <div class="modal-title-meta">
+                    <i data-lucide="search"></i>
+                    <h3 id="hf-modal-title">探索 Hugging Face 最新兼容模型</h3>
+                </div>
+                <button class="modal-close" onclick="closeHFDiscovery()">
+                    <i data-lucide="x"></i>
+                </button>
+            </div>
+            <div class="modal-body" style="background: #090a0f; padding: 1.25rem;">
+                <!-- Vendor Category Tabs -->
+                <div style="display: flex; gap: 0.4rem; overflow-x: auto; padding-bottom: 0.8rem; margin-bottom: 1rem; border-bottom: 1px solid rgba(255,255,255,0.06);" id="hf-tabs">
+                    <button class="action-btn hf-tab-btn active-tab" onclick="filterHFModels('All')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap;">📦 全部</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Alibaba')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">阿里 Qwen</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Meta')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">Meta Llama</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Google')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">谷歌 Gemma</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Microsoft')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">微软 Phi</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('DeepSeek')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">深度求索</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Mistral')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">Mistral</button>
+                    <button class="action-btn hf-tab-btn" onclick="filterHFModels('Other')" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; height: auto; white-space: nowrap; background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.08); color: var(--text-secondary);">其他</button>
+                </div>
+                
+                <div id="hf-models-list-container" style="max-height: 380px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.75rem; padding-right: 0.3rem;">
+                    <div style="text-align: center; color: var(--text-muted); padding: 2rem;">正在连接 Hugging Face 抓取最新趋势...</div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Init script -->
+    <script src="/static/app.js"></script>
+</body>
+</html>
